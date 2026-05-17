@@ -12,6 +12,7 @@ export const revalidate = 0
 export default async function DashboardPage() {
   const data = await getDashboardData()
   const lastUpdated = new Date(data.kpi.lastUpdated).toLocaleTimeString('th-TH')
+  const sourceDate = data.kpi.sourceDate || new Date().toISOString().slice(0, 10)
   const criticalCount = data.pcuStatus.filter((row: any) => row.status === 'critical').length
 
   return (
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
               <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
                 <div className="flex items-center gap-2 text-slate-400">
                   <span className="relative flex h-2.5 w-2.5">
@@ -42,6 +43,10 @@ export default async function DashboardPage() {
                   Live
                 </div>
                 <div className="mt-1 font-mono text-white">{lastUpdated}</div>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
+                <div className="text-slate-400">Data Date</div>
+                <div className="mt-1 font-mono text-white">{sourceDate}</div>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
                 <div className="flex items-center gap-2 text-slate-400"><Database className="h-4 w-4" /> Source</div>

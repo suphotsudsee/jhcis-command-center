@@ -17,18 +17,21 @@ services:
       context: ./backend
     container_name: jhcis-dashboard-backend
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
     depends_on:
-      - mariadb
       - redis
 
   mariadb:
     image: mariadb:11
     container_name: jhcis-dashboard-db
+    profiles:
+      - internal-db
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
