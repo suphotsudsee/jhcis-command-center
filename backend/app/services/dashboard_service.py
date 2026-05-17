@@ -227,7 +227,8 @@ class DashboardService:
                       AND pc.chroniccode NOT LIKE 'E11%'
                       AND pc.chroniccode NOT LIKE 'I10%'
                     THEN CONCAT(pc.pcucodeperson, ':', pc.pid)
-                  END) AS other_chronic
+                  END) AS other_chronic,
+                  0 AS pregnant
                 FROM house h
                 LEFT JOIN village vil ON vil.pcucode = h.pcucode AND vil.villcode = h.villcode
                 LEFT JOIN person p ON p.pcucodeperson = h.pcucode AND p.hcode = h.hcode
@@ -240,6 +241,73 @@ class DashboardService:
                 LIMIT 1200
                 """
             )
+
+            members = self._fetchall(
+                """
+                SELECT
+                  CONCAT(h.pcucode, '-', h.hcode) AS house_id,
+                  p.pid,
+                  TRIM(CONCAT(COALESCE(p.fname, ''), ' ', COALESCE(p.lname, ''))) AS name,
+                  CASE p.sex WHEN '1' THEN 'ชาย' WHEN '2' THEN 'หญิง' ELSE p.sex END AS sex,
+                  TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
+                  CASE WHEN TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 60 THEN 1 ELSE 0 END AS elderly,
+                  COALESCE(cf.ncd, 0) AS ncd,
+                  COALESCE(cf.diabetes, 0) AS diabetes,
+                  COALESCE(cf.hypertension, 0) AS hypertension,
+                  COALESCE(cf.other_chronic, 0) AS other_chronic,
+                  COALESCE(preg.pregnant, 0) AS pregnant,
+                  preg.edc
+                FROM house h
+                JOIN person p ON p.pcucodeperson = h.pcucode AND p.hcode = h.hcode
+                LEFT JOIN (
+                  SELECT
+                    pcucodeperson,
+                    pid,
+                    MAX(CASE WHEN chroniccode LIKE 'E10%' OR chroniccode LIKE 'E11%' OR chroniccode LIKE 'I10%' THEN 1 ELSE 0 END) AS ncd,
+                    MAX(CASE WHEN chroniccode LIKE 'E10%' OR chroniccode LIKE 'E11%' THEN 1 ELSE 0 END) AS diabetes,
+                    MAX(CASE WHEN chroniccode LIKE 'I10%' THEN 1 ELSE 0 END) AS hypertension,
+                    MAX(CASE
+                      WHEN chroniccode IS NOT NULL
+                        AND chroniccode NOT LIKE 'E10%'
+                        AND chroniccode NOT LIKE 'E11%'
+                        AND chroniccode NOT LIKE 'I10%'
+                      THEN 1 ELSE 0
+                    END) AS other_chronic
+                  FROM personchronic
+                  WHERE datedischart IS NULL
+                  GROUP BY pcucodeperson, pid
+                ) cf ON cf.pcucodeperson = p.pcucodeperson AND cf.pid = p.pid
+                LEFT JOIN (
+                  SELECT
+                    preg.pcucodeperson,
+                    preg.pid,
+                    1 AS pregnant,
+                    MIN(preg.edc) AS edc
+                  FROM visitancpregnancy preg
+                  LEFT JOIN visitancdeliver del
+                    ON del.pcucodeperson = preg.pcucodeperson
+                    AND del.pid = preg.pid
+                    AND del.pregno = preg.pregno
+                  WHERE del.pid IS NULL
+                    AND COALESCE(preg.edc, preg.firstdatecheck, preg.lmp) >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+                  GROUP BY preg.pcucodeperson, preg.pid
+                ) preg ON preg.pcucodeperson = p.pcucodeperson AND preg.pid = p.pid
+                WHERE h.xgis IS NOT NULL AND h.ygis IS NOT NULL
+                  AND h.xgis <> '' AND h.ygis <> ''
+                ORDER BY house_id, age DESC
+                """
+            )
+
+            members_by_house = {}
+            for member in members:
+                house_id = member.pop("house_id")
+                member.pop("pid", None)
+                members_by_house.setdefault(house_id, []).append(member)
+
+            for row in households:
+                row_members = members_by_house.get(row["id"], [])
+                row["members"] = row_members
+                row["pregnant"] = sum(int(member.get("pregnant") or 0) for member in row_members)
 
             temples = self._fetchall(
                 """
@@ -302,6 +370,7 @@ class DashboardService:
                 "diabetes": sum(int(row.get("diabetes") or 0) for row in households),
                 "hypertension": sum(int(row.get("hypertension") or 0) for row in households),
                 "other": sum(int(row.get("other_chronic") or 0) for row in households),
+                "pregnant": sum(int(row.get("pregnant") or 0) for row in households),
             }
 
             return {
@@ -316,6 +385,7 @@ class DashboardService:
                     "diabetes": [row for row in households if int(row.get("diabetes") or 0) > 0],
                     "hypertension": [row for row in households if int(row.get("hypertension") or 0) > 0],
                     "other": [row for row in households if int(row.get("other_chronic") or 0) > 0],
+                    "pregnant": [row for row in households if int(row.get("pregnant") or 0) > 0],
                 },
             }
         except SQLAlchemyError:
@@ -369,6 +439,7 @@ class DashboardService:
                 "diabetes": 0,
                 "hypertension": 0,
                 "other": 0,
+                "pregnant": 0,
             },
             "layers": {
                 "houses": [],
@@ -379,5 +450,6 @@ class DashboardService:
                 "diabetes": [],
                 "hypertension": [],
                 "other": [],
+                "pregnant": [],
             },
         }

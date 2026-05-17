@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import type { LayerKey, MapData, VisibleLayers } from './SpatialMap'
 
 const LeafletMap = dynamic(() => import('./SpatialMap'), {
   ssr: false,
@@ -11,7 +12,7 @@ const LeafletMap = dynamic(() => import('./SpatialMap'), {
   ),
 })
 
-export function MapPanel({ points }: { points: any }) {
+export function MapPanel({ points, visible }: { points: MapData; visible: VisibleLayers }) {
   return (
     <section className="relative h-[520px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900/90 p-4 shadow-xl shadow-black/20 backdrop-blur">
       <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -22,8 +23,20 @@ export function MapPanel({ points }: { points: any }) {
       </div>
 
       <div className="h-[445px] overflow-hidden rounded-lg border border-slate-800">
-        <LeafletMap data={points} />
+        <LeafletMap data={points} visible={visible} />
       </div>
     </section>
   )
 }
+
+export const layerOrder: LayerKey[] = [
+  'houses',
+  'temples',
+  'schools',
+  'elderly',
+  'ncd',
+  'diabetes',
+  'hypertension',
+  'pregnant',
+  'other',
+]

@@ -2,8 +2,7 @@ import { Activity, Database, Radio, ShieldCheck } from 'lucide-react'
 import { getDashboardData } from '@/lib/api'
 import { KpiCard } from '@/components/KpiCard'
 import { PcuStatusTable } from '@/components/PcuStatusTable'
-import { AlertsPanel } from '@/components/AlertsPanel'
-import { MapPanel } from '@/components/MapPanel'
+import { MapWorkspace } from '@/components/MapWorkspace'
 import { TrendPanel } from '@/components/TrendPanel'
 
 export const dynamic = 'force-dynamic'
@@ -68,14 +67,7 @@ export default async function DashboardPage() {
           {data.kpi.items.map((item: any) => <KpiCard key={item.key} item={item} />)}
         </section>
 
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-          <div className="xl:col-span-8">
-            <MapPanel points={data.map} />
-          </div>
-          <div className="xl:col-span-4">
-            <AlertsPanel alerts={data.alerts} />
-          </div>
-        </section>
+        <MapWorkspace data={data.map} />
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
           <div className="xl:col-span-5">
