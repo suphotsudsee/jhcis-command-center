@@ -5,21 +5,21 @@ router = APIRouter()
 service = DashboardService()
 
 @router.get("/kpi")
-def get_kpi():
-    return service.get_kpi()
+def get_kpi(date: str | None = None):
+    return service.get_kpi(date)
 
 @router.get("/pcu-status")
-def get_pcu_status():
-    return service.get_pcu_status()
+def get_pcu_status(date: str | None = None):
+    return service.get_pcu_status(date)
 
 @router.get("/alerts")
-def get_alerts():
-    return service.get_alerts()
+def get_alerts(date: str | None = None):
+    return service.get_alerts(date)
 
 @router.get("/trends")
-def get_trends():
-    return service.get_trends()
+def get_trends(date: str | None = None):
+    return service.get_trends(date)
 
 @router.get("/map")
-def get_map():
-    return service.get_map()
+def get_map(date: str | None = None):
+    return service.get_map(date)

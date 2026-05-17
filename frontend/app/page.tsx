@@ -1,5 +1,6 @@
 import { Activity, Database, Radio, ShieldCheck } from 'lucide-react'
 import { getDashboardData } from '@/lib/api'
+import { DateSelector } from '@/components/DateSelector'
 import { KpiCard } from '@/components/KpiCard'
 import { PcuStatusTable } from '@/components/PcuStatusTable'
 import { MapWorkspace } from '@/components/MapWorkspace'
@@ -8,10 +9,28 @@ import { TrendPanel } from '@/components/TrendPanel'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function DashboardPage() {
-  const data = await getDashboardData()
+function todayBangkok() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ date?: string }>
+}) {
+  const resolvedSearchParams = await searchParams
+  const selectedDate = resolvedSearchParams?.date || todayBangkok()
+  const data = await getDashboardData(selectedDate)
   const lastUpdated = new Date(data.kpi.lastUpdated).toLocaleTimeString('th-TH')
-  const sourceDate = data.kpi.sourceDate || new Date().toISOString().slice(0, 10)
+  const sourceDate = data.kpi.sourceDate || selectedDate
   const criticalCount = data.pcuStatus.filter((row: any) => row.status === 'critical').length
 
   return (
@@ -43,10 +62,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="mt-1 font-mono text-white">{lastUpdated}</div>
               </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
-                <div className="text-slate-400">Data Date</div>
-                <div className="mt-1 font-mono text-white">{sourceDate}</div>
-              </div>
+              <DateSelector value={sourceDate} />
               <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
                 <div className="flex items-center gap-2 text-slate-400"><Database className="h-4 w-4" /> Source</div>
                 <div className="mt-1 font-semibold text-white">JHCIS</div>

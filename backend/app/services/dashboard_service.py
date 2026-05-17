@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -41,47 +41,50 @@ class DashboardService:
 
         return value
 
-    def _latest_visit_date(self):
-        row = self._fetchone("SELECT MAX(visitdate) AS latest_date FROM visit WHERE visitdate <= CURDATE()")
-        return row.get("latest_date")
+    def _selected_date(self, selected_date=None):
+        if selected_date:
+            try:
+                return datetime.strptime(selected_date, "%Y-%m-%d").date()
+            except ValueError:
+                return date.today()
 
-    def get_kpi(self):
+        return date.today()
+
+    def get_kpi(self, selected_date=None):
         if not self.engine:
             return self._mock_kpi()
 
         try:
-            latest_date = self._latest_visit_date()
-            if not latest_date:
-                return self._mock_kpi()
+            target_date = self._selected_date(selected_date)
 
             totals = self._fetchone(
                 """
                 SELECT
-                  (SELECT COUNT(*) FROM visit WHERE visitdate = :latest_date) AS opd,
+                  (SELECT COUNT(*) FROM visit WHERE visitdate = :target_date) AS opd,
                   (
                     SELECT COUNT(DISTINCT CONCAT(v.pcucode, ':', v.pid))
                     FROM visit v
                     JOIN visitdiag d ON d.pcucode = v.pcucode AND d.visitno = v.visitno
-                    WHERE v.visitdate = :latest_date
+                    WHERE v.visitdate = :target_date
                       AND (d.diagcode LIKE 'E10%' OR d.diagcode LIKE 'E11%' OR d.diagcode LIKE 'I10%')
                   ) AS ncd,
                   (
                     SELECT COUNT(*)
                     FROM visitrefer
-                    WHERE DATE(datetimerefer) = :latest_date
+                    WHERE DATE(datetimerefer) = :target_date
                   ) AS refer,
                   (
                     SELECT COUNT(*)
                     FROM visitepi
-                    WHERE dateepi = :latest_date
+                    WHERE dateepi = :target_date
                   ) AS pp
                 """,
-                {"latest_date": latest_date},
+                {"target_date": target_date},
             )
 
             return {
                 "lastUpdated": datetime.now().isoformat(),
-                "sourceDate": latest_date.isoformat(),
+                "sourceDate": target_date.isoformat(),
                 "items": [
                     {"key": "opd", "label": "Total OPD", "value": totals.get("opd", 0), "unit": "visits", "accent": "blue"},
                     {"key": "ncd", "label": "NCD Clinic", "value": totals.get("ncd", 0), "unit": "patients", "accent": "emerald"},
@@ -94,14 +97,12 @@ class DashboardService:
         except SQLAlchemyError:
             return self._mock_kpi()
 
-    def get_pcu_status(self):
+    def get_pcu_status(self, selected_date=None):
         if not self.engine:
             return self._mock_pcu_status()
 
         try:
-            latest_date = self._latest_visit_date()
-            if not latest_date:
-                return self._mock_pcu_status()
+            target_date = self._selected_date(selected_date)
 
             rows = self._fetchall(
                 """
@@ -119,12 +120,12 @@ class DashboardService:
                 LEFT JOIN visitdiag d ON d.pcucode = v.pcucode AND d.visitno = v.visitno
                 LEFT JOIN visitrefer vr ON vr.pcucode = v.pcucode AND vr.visitno = v.visitno
                 LEFT JOIN chospital ch ON ch.hoscode = v.pcucode
-                WHERE v.visitdate BETWEEN DATE_SUB(:latest_date, INTERVAL 30 DAY) AND :latest_date
+                WHERE v.visitdate BETWEEN DATE_SUB(:target_date, INTERVAL 30 DAY) AND :target_date
                 GROUP BY v.pcucode, ch.hosname
                 ORDER BY opd DESC
                 LIMIT 12
                 """,
-                {"latest_date": latest_date},
+                {"target_date": target_date},
             )
 
             for row in rows:
@@ -134,14 +135,12 @@ class DashboardService:
         except SQLAlchemyError:
             return self._mock_pcu_status()
 
-    def get_alerts(self):
+    def get_alerts(self, selected_date=None):
         if not self.engine:
             return self._mock_alerts()
 
         try:
-            latest_date = self._latest_visit_date()
-            if not latest_date:
-                return self._mock_alerts()
+            target_date = self._selected_date(selected_date)
 
             refer_rows = self._fetchall(
                 """
@@ -153,24 +152,22 @@ class DashboardService:
                   COALESCE(vr.reason, vr.request, 'รอส่งต่อ') AS detail
                 FROM visitrefer vr
                 LEFT JOIN chospital ch ON ch.hoscode = vr.pcucode
-                WHERE DATE(vr.datetimerefer) BETWEEN DATE_SUB(:latest_date, INTERVAL 30 DAY) AND :latest_date
+                WHERE DATE(vr.datetimerefer) BETWEEN DATE_SUB(:target_date, INTERVAL 30 DAY) AND :target_date
                 ORDER BY vr.datetimerefer DESC
                 LIMIT 6
                 """,
-                {"latest_date": latest_date},
+                {"target_date": target_date},
             )
             return refer_rows
         except SQLAlchemyError:
             return self._mock_alerts()
 
-    def get_trends(self):
+    def get_trends(self, selected_date=None):
         if not self.engine:
             return self._mock_trends()
 
         try:
-            latest_date = self._latest_visit_date()
-            if not latest_date:
-                return self._mock_trends()
+            target_date = self._selected_date(selected_date)
 
             return self._fetchall(
                 """
@@ -183,20 +180,21 @@ class DashboardService:
                   END) AS ncd
                 FROM visit v
                 LEFT JOIN visitdiag d ON d.pcucode = v.pcucode AND d.visitno = v.visitno
-                WHERE v.visitdate BETWEEN DATE_SUB(:latest_date, INTERVAL 13 DAY) AND :latest_date
+                WHERE v.visitdate BETWEEN DATE_SUB(:target_date, INTERVAL 13 DAY) AND :target_date
                 GROUP BY v.visitdate
                 ORDER BY v.visitdate
                 """,
-                {"latest_date": latest_date},
+                {"target_date": target_date},
             )
         except SQLAlchemyError:
             return self._mock_trends()
 
-    def get_map(self):
+    def get_map(self, selected_date=None):
         if not self.engine:
             return self._mock_map()
 
         try:
+            target_date = self._selected_date(selected_date)
             households = self._fetchall(
                 """
                 SELECT
@@ -208,7 +206,7 @@ class DashboardService:
                   CAST(h.xgis AS DECIMAL(12,8)) AS lat,
                   CAST(h.ygis AS DECIMAL(12,8)) AS lng,
                   COUNT(DISTINCT p.pid) AS people,
-                  SUM(CASE WHEN TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 60 THEN 1 ELSE 0 END) AS elderly,
+                  SUM(CASE WHEN TIMESTAMPDIFF(YEAR, p.birth, :target_date) >= 60 THEN 1 ELSE 0 END) AS elderly,
                   COUNT(DISTINCT CASE
                     WHEN pc.chroniccode LIKE 'E10%' OR pc.chroniccode LIKE 'E11%' OR pc.chroniccode LIKE 'I10%'
                     THEN CONCAT(pc.pcucodeperson, ':', pc.pid)
@@ -239,7 +237,8 @@ class DashboardService:
                 GROUP BY h.pcucode, h.hcode, h.villcode, vil.villname, h.hno, h.xgis, h.ygis
                 ORDER BY ncd DESC, elderly DESC, people DESC
                 LIMIT 1200
-                """
+                """,
+                {"target_date": target_date},
             )
 
             members = self._fetchall(
@@ -249,8 +248,8 @@ class DashboardService:
                   p.pid,
                   TRIM(CONCAT(COALESCE(p.fname, ''), ' ', COALESCE(p.lname, ''))) AS name,
                   CASE p.sex WHEN '1' THEN 'ชาย' WHEN '2' THEN 'หญิง' ELSE p.sex END AS sex,
-                  TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) AS age,
-                  CASE WHEN TIMESTAMPDIFF(YEAR, p.birth, CURDATE()) >= 60 THEN 1 ELSE 0 END AS elderly,
+                  TIMESTAMPDIFF(YEAR, p.birth, :target_date) AS age,
+                  CASE WHEN TIMESTAMPDIFF(YEAR, p.birth, :target_date) >= 60 THEN 1 ELSE 0 END AS elderly,
                   COALESCE(cf.ncd, 0) AS ncd,
                   COALESCE(cf.diabetes, 0) AS diabetes,
                   COALESCE(cf.hypertension, 0) AS hypertension,
@@ -289,13 +288,14 @@ class DashboardService:
                     AND del.pid = preg.pid
                     AND del.pregno = preg.pregno
                   WHERE del.pid IS NULL
-                    AND COALESCE(preg.edc, preg.firstdatecheck, preg.lmp) >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+                    AND COALESCE(preg.edc, preg.firstdatecheck, preg.lmp) >= DATE_SUB(:target_date, INTERVAL 1 YEAR)
                   GROUP BY preg.pcucodeperson, preg.pid
                 ) preg ON preg.pcucodeperson = p.pcucodeperson AND preg.pid = p.pid
                 WHERE h.xgis IS NOT NULL AND h.ygis IS NOT NULL
                   AND h.xgis <> '' AND h.ygis <> ''
                 ORDER BY house_id, age DESC
-                """
+                """,
+                {"target_date": target_date},
             )
 
             members_by_house = {}
