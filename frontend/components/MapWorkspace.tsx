@@ -9,10 +9,10 @@ const defaultVisible: VisibleLayers = {
   temples: true,
   schools: true,
   elderly: false,
+  pregnant: true,
   ncd: true,
   diabetes: false,
   hypertension: false,
-  pregnant: true,
   other: false,
 }
 
@@ -40,16 +40,14 @@ function MapLayersPanel({
   visible: VisibleLayers
   setVisible: React.Dispatch<React.SetStateAction<VisibleLayers>>
 }) {
-  const summary = data.summary || {}
-
   return (
-    <aside className="h-[520px] rounded-lg border border-slate-800 bg-slate-900/90 p-4 shadow-xl shadow-black/20 backdrop-blur">
+    <aside className="flex h-[520px] flex-col rounded-lg border border-slate-800 bg-slate-900/90 p-4 shadow-xl shadow-black/20 backdrop-blur">
       <div className="mb-4">
         <h2 className="text-lg font-bold text-white">Map Layers</h2>
         <p className="mt-1 text-sm text-slate-400">เลือกข้อมูลที่ต้องการแสดงบนแผนที่</p>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid flex-1 gap-3 overflow-y-auto pr-1">
         {layerOrder.map((key) => {
           const config = layerConfig[key]
           const count = getLayerCount(data, key)

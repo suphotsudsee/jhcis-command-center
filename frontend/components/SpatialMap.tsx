@@ -35,7 +35,7 @@ export type HouseholdMember = {
   edc?: string
 }
 
-export type LayerKey = 'houses' | 'temples' | 'schools' | 'elderly' | 'ncd' | 'diabetes' | 'hypertension' | 'pregnant' | 'other'
+export type LayerKey = 'houses' | 'temples' | 'schools' | 'elderly' | 'pregnant' | 'ncd' | 'diabetes' | 'hypertension' | 'other'
 export type VisibleLayers = Record<LayerKey, boolean>
 
 export type MapData = {
@@ -49,10 +49,10 @@ export const layerConfig: Record<LayerKey, { label: string; color: string; radiu
   temples: { label: 'วัด', color: '#f59e0b', radius: 9, description: 'วัดตามหมู่บ้าน' },
   schools: { label: 'โรงเรียน', color: '#a855f7', radius: 9, description: 'โรงเรียนตามหมู่บ้าน' },
   elderly: { label: 'ผู้สูงอายุ', color: '#f97316', radius: 6, description: 'อายุ 60 ปีขึ้นไป' },
+  pregnant: { label: 'หญิงตั้งครรภ์', color: '#ec4899', radius: 7, description: 'ยังไม่มีประวัติคลอด' },
   ncd: { label: 'NCD', color: '#10b981', radius: 6, description: 'ผู้ป่วยโรคเรื้อรัง' },
   diabetes: { label: 'เบาหวาน', color: '#ef4444', radius: 6, description: 'รหัส E10/E11' },
   hypertension: { label: 'ความดัน', color: '#eab308', radius: 6, description: 'รหัส I10' },
-  pregnant: { label: 'หญิงตั้งครรภ์', color: '#ec4899', radius: 7, description: 'ยังไม่มีประวัติคลอด' },
   other: { label: 'อื่นๆ', color: '#94a3b8', radius: 6, description: 'โรคเรื้อรังอื่น' },
 }
 
@@ -114,10 +114,10 @@ export default function SpatialMap({ data, visible }: { data: MapData; visible: 
                   {point.house_no && <div>บ้านเลขที่: {point.house_no}</div>}
                   {point.people !== undefined && <div>ประชากร: {point.people}</div>}
                   {point.elderly ? <div>ผู้สูงอายุ: {point.elderly}</div> : null}
+                  {point.pregnant ? <div>หญิงตั้งครรภ์: {point.pregnant}</div> : null}
                   {point.ncd ? <div>NCD: {point.ncd}</div> : null}
                   {point.diabetes ? <div>เบาหวาน: {point.diabetes}</div> : null}
                   {point.hypertension ? <div>ความดัน: {point.hypertension}</div> : null}
-                  {point.pregnant ? <div>หญิงตั้งครรภ์: {point.pregnant}</div> : null}
                   {point.other_chronic ? <div>อื่นๆ: {point.other_chronic}</div> : null}
                   {point.students ? <div>นักเรียน: {point.students}</div> : null}
                   {point.members?.length ? (
@@ -132,10 +132,10 @@ export default function SpatialMap({ data, visible }: { data: MapData; visible: 
                             </div>
                             <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
                               {member.elderly ? <span className="rounded bg-orange-100 px-1.5 py-0.5 text-orange-700">ผู้สูงอายุ</span> : null}
+                              {member.pregnant ? <span className="rounded bg-pink-100 px-1.5 py-0.5 text-pink-700">ตั้งครรภ์{member.edc ? ` EDC ${member.edc}` : ''}</span> : null}
                               {member.ncd ? <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-700">NCD</span> : null}
                               {member.diabetes ? <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">เบาหวาน</span> : null}
                               {member.hypertension ? <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-yellow-700">ความดัน</span> : null}
-                              {member.pregnant ? <span className="rounded bg-pink-100 px-1.5 py-0.5 text-pink-700">ตั้งครรภ์{member.edc ? ` EDC ${member.edc}` : ''}</span> : null}
                               {member.other_chronic ? <span className="rounded bg-slate-200 px-1.5 py-0.5 text-slate-700">อื่นๆ</span> : null}
                             </div>
                           </div>

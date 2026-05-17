@@ -34,9 +34,9 @@ export const layerOrder: LayerKey[] = [
   'temples',
   'schools',
   'elderly',
+  'pregnant',
   'ncd',
   'diabetes',
   'hypertension',
-  'pregnant',
   'other',
 ]
