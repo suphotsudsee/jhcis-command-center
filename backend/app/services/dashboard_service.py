@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 class DashboardService:
     """Mock-first service. Replace mock data with MariaDB Data Mart queries for production."""
 

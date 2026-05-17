@@ -1,27 +1,44 @@
-const accentMap: Record<string, string> = {
-  blue: 'text-blue-400 bg-blue-500/20 hover:shadow-blue-500/20',
-  emerald: 'text-emerald-400 bg-emerald-500/20 hover:shadow-emerald-500/20',
-  orange: 'text-orange-400 bg-orange-500/20 hover:shadow-orange-500/20',
-  red: 'text-red-400 bg-red-500/20 hover:shadow-red-500/20',
-  purple: 'text-purple-400 bg-purple-500/20 hover:shadow-purple-500/20',
+import { ArrowUpRight, HeartPulse, PhoneCall, Stethoscope, Users, Workflow } from 'lucide-react'
+
+const accentMap: Record<string, { box: string; text: string; ring: string }> = {
+  blue: { box: 'bg-blue-500/15', text: 'text-blue-400', ring: 'border-blue-500/30 shadow-blue-500/10' },
+  emerald: { box: 'bg-emerald-500/15', text: 'text-emerald-400', ring: 'border-emerald-500/30 shadow-emerald-500/10' },
+  orange: { box: 'bg-orange-500/15', text: 'text-orange-400', ring: 'border-orange-500/30 shadow-orange-500/10' },
+  red: { box: 'bg-red-500/15', text: 'text-red-400', ring: 'border-red-500/30 shadow-red-500/10' },
+  purple: { box: 'bg-purple-500/15', text: 'text-purple-400', ring: 'border-purple-500/30 shadow-purple-500/10' },
+}
+
+const iconMap: Record<string, React.ElementType> = {
+  opd: Users,
+  ncd: HeartPulse,
+  telemed: PhoneCall,
+  pp: Workflow,
+  ttm: Stethoscope,
+  refer: ArrowUpRight,
 }
 
 export function KpiCard({ item }: { item: any }) {
   const accent = accentMap[item.accent] || accentMap.blue
+  const Icon = iconMap[item.key] || Users
+  const value = Number(item.value || 0).toLocaleString('th-TH')
+
   return (
-    <div className={`rounded-2xl bg-slate-800/90 backdrop-blur border border-slate-700 p-5 shadow-lg hover:-translate-y-1 hover:shadow-lg ${accent} transition-all duration-300`}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-slate-400">{item.label}</p>
-        <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold ${accent}`}>
-          {item.key.toUpperCase().slice(0, 3)}
+    <article className={`group rounded-lg border bg-slate-900/90 p-4 shadow-lg backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${accent.ring}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{item.label}</p>
+          <div className="mt-3 text-3xl font-extrabold leading-none text-white md:text-4xl">{value}</div>
+        </div>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${accent.box} ${accent.text}`}>
+          <Icon className="h-5 w-5" />
         </div>
       </div>
-      <div className="text-3xl md:text-4xl font-extrabold text-white">
-        {Number(item.value).toLocaleString('th-TH')}
+      <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-3">
+        <span className="text-xs font-medium text-slate-400">{item.unit || 'cases'}</span>
+        <span className={`text-xs font-semibold ${accent.text}`}>
+          {item.targetPercent ? `${item.targetPercent}% target` : 'Today'}
+        </span>
       </div>
-      <p className="text-xs text-slate-400 mt-2">
-        {item.unit}{item.targetPercent ? ` • ${item.targetPercent}% of target` : ''}
-      </p>
-    </div>
+    </article>
   )
 }

@@ -1,20 +1,36 @@
+const severityClass: Record<string, string> = {
+  red: 'border-red-500/30 bg-red-500/10 text-red-300',
+  orange: 'border-orange-500/30 bg-orange-500/10 text-orange-300',
+}
+
 export function AlertsPanel({ alerts }: { alerts: any[] }) {
   return (
-    <div className="rounded-2xl bg-slate-800/90 border border-slate-700 p-4">
-      <h2 className="text-lg font-bold text-white mb-4">Critical Alerts</h2>
+    <section className="h-[420px] rounded-lg border border-slate-800 bg-slate-900/90 p-4 shadow-xl shadow-black/20 backdrop-blur">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-white">Critical Alerts</h2>
+          <p className="mt-1 text-sm text-slate-400">Clinical risk and refer queue</p>
+        </div>
+        <span className="rounded-full bg-red-500/15 px-3 py-1 text-sm font-semibold text-red-300">{alerts.length}</span>
+      </div>
+
       <div className="space-y-3">
-        {alerts.length === 0 && <p className="text-slate-400">0 alerts</p>}
+        {alerts.length === 0 && (
+          <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-4 text-slate-400">0 alerts</div>
+        )}
         {alerts.map((alert, index) => (
-          <div key={index} className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <div className="flex justify-between gap-3">
-              <span className="font-semibold text-white">{alert.type}</span>
-              <span className={alert.severity === 'red' ? 'text-red-400' : 'text-orange-400'}>{alert.time}</span>
+          <article key={index} className={`rounded-lg border p-3 ${severityClass[alert.severity] || severityClass.orange}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-semibold text-white">{alert.type}</div>
+                <div className="mt-1 text-sm text-slate-300">{alert.pcu}</div>
+              </div>
+              <time className="font-mono text-sm">{alert.time}</time>
             </div>
-            <p className="text-sm text-slate-400 mt-1">{alert.pcu}</p>
-            <p className="text-xs text-slate-500 mt-1">{alert.detail}</p>
-          </div>
+            <div className="mt-3 rounded bg-slate-950/40 px-2 py-1 text-xs text-slate-300">{alert.detail}</div>
+          </article>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
